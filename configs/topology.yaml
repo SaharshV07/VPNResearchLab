@@ -1,0 +1,103 @@
+# configs/topology.yaml
+# Laboratory Topology Definition for VPNResearchLab
+
+lab_name: "vpn_research_lab"
+description: "Reproduction topology for Blind In/On-Path Attacks (Figure 4)"
+
+subnets:
+  - "192.168.1.0/24"  # Client Network
+  - "10.0.1.0/24"     # Edge Network
+  - "10.0.2.0/24"     # Backbone Network
+  - "172.16.1.0/24"   # Application Network
+
+namespaces:
+  - name: "client"
+    forwarding: false
+    interfaces:
+      - name: "c-eth0"
+        type: "veth"
+        ip: "192.168.1.10/24"
+        peer_namespace: "gateway"
+        peer_name: "g-eth0"
+    routes:
+      - target: "0.0.0.0/0"
+        gateway: "192.168.1.1"
+    vpn_config:
+      protocol: "wireguard"
+      role: "client"
+
+  - name: "gateway"
+    forwarding: true
+    interfaces:
+      - name: "g-eth0"
+        type: "veth"
+        ip: "192.168.1.1/24"
+        peer_namespace: "client"
+        peer_name: "c-eth0"
+      - name: "g-eth1"
+        type: "veth"
+        ip: "10.0.1.1/24"
+        peer_namespace: "router"
+        peer_name: "r-eth0"
+    routes:
+      - target: "0.0.0.0/0"
+        gateway: "10.0.1.2"
+
+  - name: "router"
+    forwarding: true
+    interfaces:
+      - name: "r-eth0"
+        type: "veth"
+        ip: "10.0.1.2/24"
+        peer_namespace: "gateway"
+        peer_name: "g-eth1"
+      - name: "r-eth1"
+        type: "veth"
+        ip: "10.0.2.1/24"
+        peer_namespace: "vpn_server"
+        peer_name: "v-eth0"
+    routes:
+      - target: "192.168.1.0/24"
+        gateway: "10.0.1.1"
+      - target: "172.16.1.0/24"
+        gateway: "10.0.2.2"
+
+  - name: "vpn_server"
+    forwarding: true
+    interfaces:
+      - name: "v-eth0"
+        type: "veth"
+        ip: "10.0.2.2/24"
+        peer_namespace: "router"
+        peer_name: "r-eth1"
+      - name: "v-eth1"
+        type: "veth"
+        ip: "172.16.1.1/24"
+        peer_namespace: "app_server"
+        peer_name: "a-eth0"
+    routes:
+      - target: "0.0.0.0/0"
+        gateway: "10.0.2.1"
+    vpn_config:
+      protocol: "wireguard"
+      role: "server"
+
+  - name: "app_server"
+    forwarding: false
+    interfaces:
+      - name: "a-eth0"
+        type: "veth"
+        ip: "172.16.1.10/24"
+        peer_namespace: "vpn_server"
+        peer_name: "v-eth1"
+    routes:
+      - target: "0.0.0.0/0"
+        gateway: "172.16.1.1"
+
+capture_points:
+  - namespace: "gateway"
+    interface: "g-eth0"
+    bpf_filter: "tcp or udp"
+  - namespace: "router"
+    interface: "r-eth1"
+    bpf_filter: "tcp or udp"
