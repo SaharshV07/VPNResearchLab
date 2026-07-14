@@ -1,0 +1,44 @@
+# configs/vpn/wireguard.yaml
+# Generic VPN configuration blueprint for the research laboratory.
+
+name: "baseline_wireguard_tunnel"
+protocol: "wireguard"
+
+nodes:
+  # ---------------------------------------------------------
+  # VPN Server Configuration
+  # ---------------------------------------------------------
+  - namespace: "vpn_server"
+    role: "server"
+    interface:
+      name: "wg0"
+      address: "10.7.0.1/24"
+      listen_port: 51820
+      mtu: 1420
+    peers:
+      - target_namespace: "client"
+        allowed_ips:
+          - "10.7.0.2/32"
+    routes:
+      - target: "10.7.0.0/24"
+        dev: "wg0"
+
+  # ---------------------------------------------------------
+  # VPN Client Configuration
+  # ---------------------------------------------------------
+  - namespace: "client"
+    role: "client"
+    interface:
+      name: "wg0"
+      address: "10.7.0.2/24"
+      mtu: 1420
+    peers:
+      - target_namespace: "vpn_server"
+        endpoint: "10.0.2.2:51820"
+        allowed_ips:
+          - "0.0.0.0/0"
+        persistent_keepalive: 25
+    routes:
+      # Route all traffic through the tunnel to test NAT behavior
+      - target: "0.0.0.0/0"
+        dev: "wg0"
