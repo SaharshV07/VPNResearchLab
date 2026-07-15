@@ -2,102 +2,81 @@
 """
 run_vpn_demo.py
 
-Proves the baseline assumptions of the paper: The infrastructure exists, 
-the VPN is active, and traffic is fully encapsulated.
+Integrates the network configuration and VPN orchestration to deploy and 
+validate the baseline encrypted environment.
 """
 
-import os
 import sys
-import time
-import threading
 import logging
 from pathlib import Path
 
-# Infrastructure
 from lab.config import LabConfiguration
-from lab.topology.namespace_manager import NamespaceManager, LabConfig as NsConfig
-from lab.topology.network_builder import NetworkBuilder
-from lab.topology.routing_manager import RoutingManager
-from lab.start_servers import ServiceOrchestrator
-
-# VPN
 from lab.vpn.config import VPNConfiguration
+from lab.topology.namespace_manager import NamespaceManager, LabConfig as NsConfig
 from lab.vpn.vpn_manager import VPNManager
 from lab.vpn.validator import VPNValidator
-
-# Observation (To prove encryption)
-from framework.observation.capture import CapturePipeline
+from lab.start_servers import ServiceOrchestrator
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 
-def run_capture(pipeline: CapturePipeline) -> None:
-    pipeline.start()
+def format_status(status: bool) -> str:
+    """Helper to format boolean checks."""
+    return "PASS" if status else "FAIL"
 
 
 def main() -> None:
-    if os.geteuid() != 0:
-        logger.error("FATAL: Root privileges required.")
-        sys.exit(1)
+    logger.info("Initializing Baseline VPN Environment Deployment...")
 
-    # Note: Assumes `sudo python3 lab/run_lab.py` has already provisioned the base topology
     base_dir = Path(__file__).resolve().parent.parent
     vpn_config_path = base_dir / "configs" / "vpn" / "wireguard.yaml"
+    # Expected target based on previous infrastructure layout
     app_server_ip = "172.16.1.10"
 
     try:
-        # Load configs
         vpn_config = VPNConfiguration.load(vpn_config_path)
-        ns_manager = NamespaceManager(NsConfig(namespaces=["client", "vpn_server"]))
-        route_manager = RoutingManager(ns_manager)
-        net_builder = NetworkBuilder(ns_manager)
-        
-        # 1. Deploy VPN
-        vpn_manager = VPNManager(vpn_config, ns_manager, route_manager, net_builder)
-        vpn_manager.deploy()
+        ns_names = [n.namespace for n in vpn_config.nodes] + ["app_server"]
+        ns_manager = NamespaceManager(NsConfig(namespaces=ns_names))
 
-        # 2. Start App Servers
+        # 1. Deploy VPN
+        manager = VPNManager(vpn_config, ns_manager)
+        manager.deploy()
+
+        # 2. Start Application Server (Required for Validation)
         orchestrator = ServiceOrchestrator(target_ns="app_server")
         orchestrator.start_all()
-        time.sleep(1) # Wait for listeners
 
-        # 3. Validate VPN Architecture
+        # 3. Validate
         validator = VPNValidator(vpn_config, ns_manager)
-        validator.validate(app_server_ip)
+        result = validator.validate(app_server_ip)
 
-        # 4. Prove Encryption (The Blind In-Path Attacker view)
-        logger.info("\n=== Phase 5: Observable Metadata Collection ===")
-        logger.info("Initializing Observation Engine at Gateway (In-Path router view)...")
-        
-        # Sniff physical gateway interface expecting only encrypted UDP (51820)
-        pipeline = CapturePipeline(
-            interfaces=["g-eth0"], # Physical interface facing the client
-            bpf_filter="tcp port 80 or udp port 51820"
-        )
-        
-        capture_thread = threading.Thread(target=run_capture, args=(pipeline,))
-        capture_thread.start()
-        time.sleep(1) # Let sniffer bind
+        # 4. Generate Reporting Block
+        print("\n" + "=" * 35)
+        print("===== BASELINE VPN VALIDATION =====")
+        print("=" * 35)
+        print(f"Namespaces ........ {format_status(result.namespaces)}")
+        print(f"WireGuard Interface {format_status(result.interfaces)}")
+        print(f"Handshake ......... {format_status(result.handshake)}")
+        print(f"Routing ........... {format_status(result.routing)}")
+        print(f"NAT ............... {format_status(result.nat)}")
+        print(f"Connectivity ...... {format_status(result.connectivity)}")
+        print("-" * 35)
+        print(f"RTT ............... {result.rtt_ms:.2f} ms")
+        print(f"Throughput ........ {result.throughput_mbps:.2f} MB/s")
+        print("=" * 35 + "\n")
 
-        logger.info("Sending plaintext HTTP request (Port 80) from client application...")
-        validator.generator.generate_http(app_server_ip, 8000)
-        time.sleep(1) # Allow capture 
+        if not all([result.namespaces, result.interfaces, result.handshake, result.routing, result.nat, result.connectivity]):
+            sys.exit(1)
 
-        pipeline.stop()
-        capture_thread.join()
-
-        logger.info(f"\n[Observation Results]")
-        logger.info(f"Packets Captured: {pipeline.packets_captured}")
-        logger.info("Conclusion: The gateway observed exactly 0 plaintext TCP packets. "
-                    "The in-path observer is perfectly 'blind' to the tunnel payload.")
-        
+    except Exception as e:
+        logger.error(f"Deployment encountered a fatal error: {e}")
+        sys.exit(1)
     finally:
         try:
             orchestrator.stop_all()
         except Exception:
             pass
-
 
 if __name__ == "__main__":
     main()
