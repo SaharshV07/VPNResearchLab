@@ -1,34 +1,142 @@
+# ==========================================================
+# VPNResearchLab - Git Ignore
+# ==========================================================
+
+##############################
 # Python
+##############################
 __pycache__/
 *.py[cod]
 *$py.class
+
+##############################
+# Virtual Environment
+##############################
 .venv/
-env/
 venv/
+env/
+ENV/
 
-# Environment Variables
-.env
+##############################
+# Pytest
+##############################
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
 
+##############################
+# Type Checking / Linting
+##############################
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+##############################
 # Jupyter
+##############################
 .ipynb_checkpoints/
 
-# IDEs
+##############################
+# VS Code
+##############################
 .vscode/
+
+##############################
+# JetBrains
+##############################
 .idea/
 
-# Data and Logs
-*.log
-*.sqlite3
-*.db
-datasets/*.pcap
-datasets/*.pcapng
-results/*.csv
-results/*.jsonl
-
-# OS generated files
+##############################
+# Operating System
+##############################
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Project-specific temp files
-lab/tmp/
-configs/tmp/
+##############################
+# Logs
+##############################
+*.log
+logs/
+
+##############################
+# SQLite Databases
+##############################
+*.db
+*.sqlite
+*.sqlite3
+
+##############################
+# Packet Captures
+##############################
+*.pcap
+*.pcapng
+
+##############################
+# Runtime Files
+##############################
+runtime/
+temp/
+tmp/
+
+##############################
+# Experiment Outputs
+##############################
+results/
+reports/generated/
+docs/experiment_logs/generated/
+
+##############################
+# Generated Graphs
+##############################
+*.png
+*.svg
+*.pdf
+
+##############################
+# Python Packaging
+##############################
+build/
+dist/
+*.egg-info/
+.eggs/
+
+##############################
+# Environment Variables
+##############################
+.env
+.env.*
+
+##############################
+# WireGuard Keys
+##############################
+configs/wireguard/*.key
+configs/wireguard/*.pub
+configs/wireguard/generated/
+
+##############################
+# VPN Runtime Files
+##############################
+lab/runtime/
+lab/runtime_logs/
+lab/runtime_data/
+
+##############################
+# Temporary Configurations
+##############################
+*.tmp
+*.bak
+*.swp
+
+##############################
+# Benchmark Outputs
+##############################
+benchmark/
+profiling/
+
+##############################
+# Generated Documentation
+##############################
+site/
