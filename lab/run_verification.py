@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    if os.geteuid() != 0:
+    if not is_admin():
         logger.error("FATAL: Root privileges required for kernel state queries.")
         sys.exit(1)
 

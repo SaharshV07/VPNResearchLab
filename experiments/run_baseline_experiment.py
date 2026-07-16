@@ -41,7 +41,7 @@ class BaselineConnectivityExperiment(BaseExperiment):
 
 
 def main() -> None:
-    if os.geteuid() != 0:
+    if is_admin() != 0:
         print("FATAL: Root privileges required for kernel state orchestration.")
         sys.exit(1)
 
