@@ -54,11 +54,20 @@ def test_baseline_experiment_flow(
     mock_metrics_instance = mock_metrics.return_value
     mock_metrics_instance.measure_rtt.return_value = 1.25
     mock_metrics_instance.measure_throughput_mbps.return_value = 100.0
-    mock_metrics_instance.get_interface_statistics.return_value = MagicMock(__dict__={"rx_bytes": 100})
+    from types import SimpleNamespace   
+    mock_metrics_instance.get_interface_statistics.return_value = SimpleNamespace(
+    rx_bytes=100
+    )
     
     # Initialize Experiment
     experiment = BaselineValidationExperiment(spec=mock_spec, base_dir=tmp_path)
     
+
+    experiment.lab_config = MagicMock()
+    experiment.vpn_config = MagicMock()
+    experiment.ns_manager = MagicMock()
+    experiment.cleanup_manager = MagicMock()
+    experiment.logger = MagicMock()
     # Test initialize()
     experiment.initialize()
     mock_base_init.assert_called_once()

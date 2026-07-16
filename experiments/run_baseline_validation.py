@@ -33,6 +33,19 @@ from lab.validation.metrics_collector import MetricsCollector
 
 logger = logging.getLogger(__name__)
 
+import sys
+import logging
+from framework.utils.platform import is_admin
+
+logger = logging.getLogger(__name__)
+
+def main() -> None:
+    if not is_admin():
+        logger.error("FATAL: Root/Administrative privileges required for kernel network manipulation.")
+        sys.exit(1)
+    
+    # ... rest of execution logic
+
 
 class BaselineValidationExperiment(BaseExperiment):
     """
@@ -195,7 +208,7 @@ def create_baseline_specification(base_dir: Path) -> ExperimentSpecification:
 
 
 def main() -> None:
-    if os.geteuid() != 0:
+    if is_admin() != 0:
         print("FATAL: Root privileges required for kernel network manipulation.")
         sys.exit(1)
 

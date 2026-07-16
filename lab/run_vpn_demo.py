@@ -20,6 +20,19 @@ from lab.start_servers import ServiceOrchestrator
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
+import sys
+import logging
+from framework.utils.platform import is_admin
+
+logger = logging.getLogger(__name__)
+
+def main() -> None:
+    if not is_admin():
+        logger.error("FATAL: Root/Administrative privileges required for kernel network manipulation.")
+        sys.exit(1)
+    
+    # ... rest of execution logic
+
 
 def format_status(status: bool) -> str:
     """Helper to format boolean checks."""

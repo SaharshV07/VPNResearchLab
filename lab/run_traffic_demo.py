@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    if os.geteuid() != 0:
+    from framework.utils.platform import is_admin
+
+    if not is_admin():
         logger.error("FATAL: Generating namespace traffic requires root privileges (run with sudo).")
         sys.exit(1)
 

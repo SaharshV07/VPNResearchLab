@@ -33,3 +33,13 @@ cd VPNResearchLab
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+
+## Repository Verification
+
+Before executing any experiments or provisioning the lab, it is critical to verify the repository health. A cross-platform verification utility is provided to ensure all dependencies, imports, and system requirements are met.
+
+### Usage
+Execute the health check from the root of the repository:
+```bash
+python healthcheck.py
